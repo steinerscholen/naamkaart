@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import type { Student, SchoolSettings } from '../types'
 import { BADGE_W_MM, BADGE_H_MM, BADGES_PER_ROW } from '../types'
+import { friendlyClassName } from './classes'
 
 function hex2rgb(hex: string): [number, number, number] {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
@@ -29,19 +30,29 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
   doc.setFillColor(ar, ag, ab)
   doc.rect(x, y, W, STRIP, 'F')
 
-  // School name in strip
+  // School name in strip (bottom-left)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(6)
   doc.setTextColor(tr, tg, tb)
   doc.text(settings.schoolName || '', x + 2, y + STRIP - 1.2)
 
-  // Year in strip, right-aligned (leave room for logo)
+  const logoSpace = settings.logo ? 13 : 2
+
+  // Year in strip (upper-right)
   const year = settings.year || ''
   if (year) {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(5.5)
-    const logoSpace = settings.logo ? 13 : 2
-    doc.text(year, x + W - logoSpace, y + STRIP - 1.2, { align: 'right' })
+    doc.setTextColor(tr, tg, tb)
+    doc.text(year, x + W - logoSpace, y + 3.2, { align: 'right' })
+  }
+
+  // Official class code under year (bottom-right, small)
+  if (student.className) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(4.5)
+    doc.setTextColor(tr, tg, tb)
+    doc.text(student.className, x + W - logoSpace, y + STRIP - 1.2, { align: 'right' })
   }
 
   // Logo in strip
@@ -78,7 +89,7 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(60, 60, 60)
-  doc.text(`Klas: ${student.className}`, TX, y + STRIP + 12)
+  doc.text(`Klas: ${friendlyClassName(student.className)}`, TX, y + STRIP + 12)
 
   if (student.birthday) {
     doc.text(`Geb.: ${fmtDate(student.birthday)}`, TX, y + STRIP + 17)
@@ -107,7 +118,7 @@ export function generatePDF(
   const gX = settings.gapX ?? 0
   const gY = settings.gapY ?? 0
 
-  let slot = startSlot
+  let slot = Math.max(0, startSlot)
 
   students.forEach((student, i) => {
     if (i > 0 && slot >= 24) {
@@ -121,6 +132,77 @@ export function generatePDF(
     drawBadge(doc, student, settings, x, y)
     slot++
   })
+
+  return doc
+}
+
+// For existing sheets: place badges only on available slots (not sequential from startSlot).
+// This handles non-contiguous available slots correctly.
+export function generatePDFOnSheet(
+  students: Student[],
+  settings: SchoolSettings,
+  availableSlotIndices: number[]
+): jsPDF {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const mTop = settings.marginTop ?? 0
+  const mLeft = settings.marginLeft ?? 0
+  const gX = settings.gapX ?? 0
+  const gY = settings.gapY ?? 0
+
+  students.forEach((student, i) => {
+    if (i < availableSlotIndices.length) {
+      const slot = availableSlotIndices[i]
+      const col = slot % BADGES_PER_ROW
+      const row = Math.floor(slot / BADGES_PER_ROW)
+      drawBadge(doc, student, settings, mLeft + col * (BADGE_W_MM + gX), mTop + row * (BADGE_H_MM + gY))
+    } else {
+      // Overflow: fresh page(s), sequential from slot 0
+      const overflow = i - availableSlotIndices.length
+      if (overflow % 24 === 0) doc.addPage()
+      const slot = overflow % 24
+      const col = slot % BADGES_PER_ROW
+      const row = Math.floor(slot / BADGES_PER_ROW)
+      drawBadge(doc, student, settings, mLeft + col * (BADGE_W_MM + gX), mTop + row * (BADGE_H_MM + gY))
+    }
+  })
+
+  return doc
+}
+
+export function generatePDFByClass(
+  students: Student[],
+  settings: SchoolSettings
+): jsPDF {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const mTop = settings.marginTop ?? 0
+  const mLeft = settings.marginLeft ?? 0
+  const gX = settings.gapX ?? 0
+  const gY = settings.gapY ?? 0
+
+  const groups = new Map<string, Student[]>()
+  for (const student of students) {
+    const cls = student.className || '—'
+    if (!groups.has(cls)) groups.set(cls, [])
+    groups.get(cls)!.push(student)
+  }
+
+  let firstPage = true
+  for (const classStudents of groups.values()) {
+    if (!firstPage) doc.addPage()
+    firstPage = false
+
+    classStudents.forEach((student, i) => {
+      if (i > 0 && i % 24 === 0) doc.addPage()
+      const slot = i % 24
+      const col = slot % BADGES_PER_ROW
+      const row = Math.floor(slot / BADGES_PER_ROW)
+      const x = mLeft + col * (BADGE_W_MM + gX)
+      const y = mTop + row * (BADGE_H_MM + gY)
+      drawBadge(doc, student, settings, x, y)
+    })
+  }
 
   return doc
 }

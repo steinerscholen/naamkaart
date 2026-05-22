@@ -2,6 +2,7 @@ import { useState, useRef, type ChangeEvent } from 'react'
 import { useStore } from '../store'
 import type { Student } from '../types'
 import { BadgePreview } from '../components/BadgePreview'
+import { friendlyClassName } from '../utils/classes'
 import { Modal } from '../components/Modal'
 import { compressImage, matchPhotos } from '../utils/images'
 import { parseCSV, guessColumns, mapToStudents, type ColumnMap } from '../utils/csv'
@@ -71,7 +72,7 @@ export function StudentsPage() {
           </button>
           {classes.map(c => (
             <button key={c} onClick={() => setSearch(c)} className={`px-2 py-1 text-xs rounded-full border ${search === c ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-              {c}
+              {friendlyClassName(c)}
             </button>
           ))}
         </div>
@@ -89,7 +90,7 @@ export function StudentsPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-800">{s.firstName} {s.lastName}</p>
                 <p className="text-sm text-slate-500">
-                  Klas: {s.className || '—'}
+                  Klas: {friendlyClassName(s.className) || '—'}
                   {s.birthday && <span className="ml-3">Geb.: {s.birthday.split('-').reverse().join('/')}</span>}
                 </p>
                 {!s.photo && <p className="text-xs text-amber-500 mt-0.5">Geen foto</p>}

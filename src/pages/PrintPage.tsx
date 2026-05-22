@@ -4,24 +4,30 @@ import type { SlotState } from '../types'
 import { BADGES_PER_PAGE } from '../types'
 import { BadgePreview } from '../components/BadgePreview'
 import { StickerSheetEditor } from '../components/StickerSheetEditor'
-import { generatePDF, slotsUsedOnFirstPage } from '../utils/pdf'
+import { generatePDF, generatePDFByClass, generatePDFOnSheet } from '../utils/pdf'
+import { friendlyClassName } from '../utils/classes'
 
 type SheetMode = 'new' | 'existing'
+type PhotoFilter = 'all' | 'with' | 'without'
 
 export function PrintPage() {
   const { students, settings, sheets, addSheet, updateSheet } = useStore()
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [filter, setFilter] = useState('')
+  const [photoFilter, setPhotoFilter] = useState<PhotoFilter>('all')
   const [sheetMode, setSheetMode] = useState<SheetMode>('new')
   const [existingSheetId, setExistingSheetId] = useState<string>('')
   const [generating, setGenerating] = useState(false)
+  const [printPerClass, setPrintPerClass] = useState(false)
 
   const classes = [...new Set(students.map(s => s.className).filter(Boolean))].sort()
 
   const filtered = students.filter(s => {
     const q = filter.toLowerCase()
-    return !q || s.firstName.toLowerCase().includes(q) || s.lastName.toLowerCase().includes(q) || s.className.toLowerCase().includes(q)
+    const matchesText = !q || s.firstName.toLowerCase().includes(q) || s.lastName.toLowerCase().includes(q) || s.className.toLowerCase().includes(q)
+    const matchesPhoto = photoFilter === 'all' || (photoFilter === 'with' ? !!s.photo : !s.photo)
+    return matchesText && matchesPhoto
   })
 
   const toggle = (id: string) => setSelected(prev => {
@@ -38,43 +44,55 @@ export function PrintPage() {
   const selectedStudents = students.filter(s => selected.has(s.id))
 
   const existingSheet = sheets.find(sh => sh.id === existingSheetId)
-  const startSlot = useMemo(() => {
-    if (sheetMode === 'new' || !existingSheet) return 0
-    return existingSheet.slots.findIndex(s => s === 'available')
-      ?? 0
-  }, [sheetMode, existingSheet])
 
-  const queuedSlots = useMemo(() => {
-    if (!existingSheet) return []
-    return slotsUsedOnFirstPage(selectedStudents.length, Math.max(startSlot, 0))
-  }, [existingSheet, selectedStudents.length, startSlot])
+  // Exact available slot indices on the existing sheet, in order
+  const availableSlotIndices = useMemo(() =>
+    existingSheet
+      ? existingSheet.slots.map((s, i) => ({ s, i })).filter(({ s }) => s === 'available').map(({ i }) => i)
+      : [],
+    [existingSheet]
+  )
+
+  // Which slots will be highlighted as "queued" in the editor
+  const queuedSlots = useMemo(() =>
+    availableSlotIndices.slice(0, selectedStudents.length),
+    [availableSlotIndices, selectedStudents.length]
+  )
 
   const availableCount = existingSheet
-    ? existingSheet.slots.filter(s => s === 'available').length
+    ? availableSlotIndices.length
     : BADGES_PER_PAGE
 
   const handleGenerate = async () => {
     if (selectedStudents.length === 0) return
     setGenerating(true)
     try {
-      const effectiveStart = sheetMode === 'new' ? 0 : Math.max(startSlot, 0)
-      const doc = generatePDF(selectedStudents, settings, effectiveStart)
+      let doc
+      if (printPerClass) {
+        doc = generatePDFByClass(selectedStudents, settings)
+      } else if (sheetMode === 'existing' && existingSheet) {
+        doc = generatePDFOnSheet(selectedStudents, settings, availableSlotIndices)
+      } else {
+        doc = generatePDF(selectedStudents, settings, 0)
+      }
       doc.save(`badges-${new Date().toISOString().slice(0, 10)}.pdf`)
 
-      // Update sheet usage
-      if (sheetMode === 'new') {
-        const newSheet = addSheet(`Vel ${new Date().toLocaleDateString('nl-BE')}`)
-        const usedSlots = slotsUsedOnFirstPage(selectedStudents.length, 0)
-        const nextSlots = newSheet.slots.map((s, i) =>
-          usedSlots.includes(i) ? 'used' : s
-        ) as SlotState[]
-        updateSheet(newSheet.id, { slots: nextSlots })
-      } else if (existingSheet) {
-        const usedSlots = slotsUsedOnFirstPage(selectedStudents.length, effectiveStart)
-        const nextSlots = existingSheet.slots.map((s, i) =>
-          usedSlots.includes(i) ? 'used' : s
-        ) as SlotState[]
-        updateSheet(existingSheet.id, { slots: nextSlots })
+      // Update sheet slot tracking
+      if (!printPerClass) {
+        if (sheetMode === 'new') {
+          const newSheet = addSheet(`Vel ${new Date().toLocaleDateString('nl-BE')}`)
+          const usedCount = Math.min(selectedStudents.length, 24)
+          const nextSlots = newSheet.slots.map((s, i) =>
+            i < usedCount ? 'used' : s
+          ) as SlotState[]
+          updateSheet(newSheet.id, { slots: nextSlots })
+        } else if (existingSheet) {
+          const slotsToMark = availableSlotIndices.slice(0, selectedStudents.length)
+          const nextSlots = existingSheet.slots.map((s, i) =>
+            slotsToMark.includes(i) ? 'used' : s
+          ) as SlotState[]
+          updateSheet(existingSheet.id, { slots: nextSlots })
+        }
       }
     } finally {
       setGenerating(false)
@@ -111,22 +129,34 @@ export function PrintPage() {
             </button>
           </div>
 
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-xs text-slate-400 mr-1">Foto:</span>
+            {(['all', 'with', 'without'] as const).map(f => (
+              <button key={f} onClick={() => setPhotoFilter(f)}
+                className={`px-2 py-0.5 text-xs rounded-full border font-medium transition-colors ${photoFilter === f ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {f === 'all' ? 'Alle' : f === 'with' ? 'Met foto' : 'Zonder foto'}
+              </button>
+            ))}
+          </div>
+
           {classes.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {classes.map(c => (
-                <button key={c} onClick={() => {
-                  const ids = students.filter(s => s.className === c).map(s => s.id)
-                  const allSelected = ids.every(id => selected.has(id))
-                  setSelected(prev => {
-                    const next = new Set(prev)
-                    if (allSelected) ids.forEach(id => next.delete(id))
-                    else ids.forEach(id => next.add(id))
-                    return next
-                  })
-                }} className="px-2 py-1 text-xs rounded-full border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700">
-                  Klas {c}
-                </button>
-              ))}
+              {classes.map(c => {
+                const ids = filtered.filter(s => s.className === c).map(s => s.id)
+                const allSelected = ids.length > 0 && ids.every(id => selected.has(id))
+                return (
+                  <button key={c} onClick={() => {
+                    setSelected(prev => {
+                      const next = new Set(prev)
+                      if (allSelected) ids.forEach(id => next.delete(id))
+                      else ids.forEach(id => next.add(id))
+                      return next
+                    })
+                  }} className={`px-2 py-1 text-xs rounded-full border font-medium transition-colors ${allSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700'}`}>
+                    {friendlyClassName(c)}
+                  </button>
+                )
+              })}
             </div>
           )}
 
@@ -228,8 +258,25 @@ export function PrintPage() {
             </div>
           )}
 
+          <label className="flex items-center gap-3 cursor-pointer select-none bg-white border border-slate-100 rounded-xl px-4 py-3">
+            <div className="relative">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={printPerClass}
+                onChange={e => setPrintPerClass(e.target.checked)}
+              />
+              <div className={`w-9 h-5 rounded-full transition-colors ${printPerClass ? 'bg-indigo-600' : 'bg-slate-200'}`} />
+              <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${printPerClass ? 'translate-x-4' : ''}`} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Afdrukken per klas</p>
+              <p className="text-xs text-slate-400">Elke klas start op een nieuwe pagina</p>
+            </div>
+          </label>
+
           <button
-            disabled={selectedStudents.length === 0 || generating || (sheetMode === 'existing' && !existingSheetId)}
+            disabled={selectedStudents.length === 0 || generating || (!printPerClass && sheetMode === 'existing' && !existingSheetId)}
             onClick={handleGenerate}
             className="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 disabled:opacity-40 transition-colors"
           >

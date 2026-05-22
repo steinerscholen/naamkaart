@@ -13,9 +13,25 @@ export interface ColumnMap {
   birthday: string
 }
 
+async function readFileText(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  // Honour explicit UTF-8 BOM
+  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return new TextDecoder('utf-8').decode(buffer)
+  }
+  // Try strict UTF-8; Smartschool and other Belgian school tools often export Windows-1252
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+  } catch {
+    return new TextDecoder('windows-1252').decode(buffer)
+  }
+}
+
 export async function parseCSV(file: File): Promise<CSVResult> {
+  const text = await readFileText(file)
   return new Promise((resolve, reject) => {
-    Papa.parse<Record<string, string>>(file, {
+    Papa.parse<Record<string, string>>(text, {
       header: true,
       skipEmptyLines: true,
       complete: r => resolve({ headers: r.meta.fields ?? [], rows: r.data }),
@@ -43,10 +59,12 @@ export function guessColumns(headers: string[]): Partial<ColumnMap> {
 
 function parseBirthday(raw: string): string {
   if (!raw) return ''
-  const ddmm = raw.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/)
+  // DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY (Belgian/European)
+  const ddmm = raw.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})/)
   if (ddmm) return `${ddmm[3]}-${ddmm[2].padStart(2, '0')}-${ddmm[1].padStart(2, '0')}`
-  const iso = raw.match(/^\d{4}-\d{2}-\d{2}$/)
-  if (iso) return raw
+  // ISO: YYYY-MM-DD (optionally with time suffix)
+  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (iso) return iso[1]
   return ''
 }
 

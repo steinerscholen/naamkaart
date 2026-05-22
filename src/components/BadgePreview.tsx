@@ -1,4 +1,5 @@
 import type { Student, SchoolSettings } from '../types'
+import { friendlyClassName } from '../utils/classes'
 
 interface Props {
   student: Student
@@ -39,10 +40,15 @@ export function BadgePreview({ student, settings, scale = 3 }: Props) {
         }}>
           {settings.schoolName}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: s * 0.8, flexShrink: 0 }}>
-          <span style={{ color: settings.accentTextColor || '#fff', fontSize: pt(5.5), whiteSpace: 'nowrap' }}>
-            {settings.year}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: s * 0.8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: s * 0.15 }}>
+            <span style={{ color: settings.accentTextColor || '#fff', fontSize: pt(5.5), whiteSpace: 'nowrap' }}>
+              {settings.year}
+            </span>
+            <span style={{ color: settings.accentTextColor || '#fff', fontSize: pt(3.8), whiteSpace: 'nowrap', opacity: 0.75 }}>
+              {student.className}
+            </span>
+          </div>
           {settings.logo && (
             <img src={settings.logo} alt="" style={{ height: STRIP - s, maxWidth: 12 * s, objectFit: 'contain' }} />
           )}
@@ -72,7 +78,7 @@ export function BadgePreview({ student, settings, scale = 3 }: Props) {
           {student.firstName} {student.lastName}
         </div>
         <div style={{ fontSize: pt(7), color: '#444', marginBottom: 1.5 * s }}>
-          Klas: {student.className}
+          Klas: {friendlyClassName(student.className)}
         </div>
         {student.birthday && (
           <div style={{ fontSize: pt(7), color: '#444' }}>
