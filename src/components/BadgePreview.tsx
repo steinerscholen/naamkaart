@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { Student, SchoolSettings } from '../types'
 import { friendlyClassName } from '../utils/classes'
 
@@ -8,12 +9,27 @@ interface Props {
 }
 
 export function BadgePreview({ student, settings, scale = 3 }: Props) {
+  useEffect(() => {
+    const styleId = 'badge-custom-font'
+    let el = document.getElementById(styleId) as HTMLStyleElement | null
+    if (settings.customFont) {
+      if (!el) {
+        el = document.createElement('style')
+        el.id = styleId
+        document.head.appendChild(el)
+      }
+      el.textContent = `@font-face { font-family: '${settings.customFont.name}'; src: url('data:font/truetype;base64,${settings.customFont.data}') format('truetype'); font-weight: normal bold; }`
+    } else if (el) {
+      el.remove()
+    }
+  }, [settings.customFont])
   const s = scale
-  const W = 70 * s
-  const H = 37 * s
+  const fontFamily = settings.customFont ? `'${settings.customFont.name}', Helvetica, Arial, sans-serif` : 'Helvetica, Arial, sans-serif'
+  const W = (settings.badgeW ?? 70) * s
+  const H = (settings.badgeH ?? 37) * s
   const STRIP = 6.5 * s
   const PW = 20 * s
-  const PH = (37 - 6.5 - 3) * s
+  const PH = ((settings.badgeH ?? 37) - 6.5 - 3) * s
   const PX = 2 * s
   const PY = STRIP + 1.5 * s
   const TX = 24 * s
@@ -23,7 +39,7 @@ export function BadgePreview({ student, settings, scale = 3 }: Props) {
     <div style={{
       width: W, height: H, position: 'relative', overflow: 'hidden',
       backgroundColor: '#fff', border: '1px dashed #cbd5e1', borderRadius: 2 * s,
-      fontFamily: 'Helvetica, Arial, sans-serif', flexShrink: 0,
+      fontFamily, flexShrink: 0,
     }}>
       {/* Strip */}
       <div style={{

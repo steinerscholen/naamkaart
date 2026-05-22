@@ -58,10 +58,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSettings(prev => ({ ...DEFAULT_SETTINGS, ...prev, ...s }))
 
   const addSheet = (label: string): StickerSheet => {
+    const slotCount = (settings.cols ?? 3) * (settings.rows ?? 8)
     const sheet: StickerSheet = {
       id: uid(),
       label,
-      slots: new Array<SlotState>(24).fill('available'),
+      slots: new Array<SlotState>(slotCount).fill('available'),
       createdAt: new Date().toISOString(),
     }
     setSheets(prev => [...prev, sheet])

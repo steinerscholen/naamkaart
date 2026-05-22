@@ -2,13 +2,14 @@ import type { StickerSheet, SlotState } from '../types'
 
 interface Props {
   sheet: StickerSheet
+  cols?: number
   /** Slots highlighted as "queued for this print job" */
   queuedSlots?: number[]
   onChange?: (slots: SlotState[]) => void
   readOnly?: boolean
 }
 
-export function StickerSheetEditor({ sheet, queuedSlots = [], onChange, readOnly }: Props) {
+export function StickerSheetEditor({ sheet, cols = 3, queuedSlots = [], onChange, readOnly }: Props) {
   const toggle = (i: number) => {
     if (readOnly || !onChange) return
     const next = [...sheet.slots] as SlotState[]
@@ -23,9 +24,9 @@ export function StickerSheetEditor({ sheet, queuedSlots = [], onChange, readOnly
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gap: 3,
-          width: 180,
+          width: Math.max(180, cols * 56),
           padding: 6,
           backgroundColor: '#f8fafc',
           border: '1px solid #e2e8f0',

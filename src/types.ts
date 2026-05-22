@@ -18,6 +18,11 @@ export interface SchoolSettings {
   marginLeft: number // mm, space left of first column
   gapX: number // mm, horizontal gap between sticker columns
   gapY: number // mm, vertical gap between sticker rows
+  cols: number // stickers per row
+  rows: number // rows per page
+  badgeW: number // mm, sticker width
+  badgeH: number // mm, sticker height
+  customFont?: { name: string; data: string } // display name + base64 TTF
 }
 
 export type SlotState = 'available' | 'used'
@@ -39,6 +44,10 @@ export const DEFAULT_SETTINGS: SchoolSettings = {
   marginLeft: 0,
   gapX: 0,
   gapY: 0,
+  cols: 3,
+  rows: 8,
+  badgeW: 70,
+  badgeH: 37,
 }
 
 export const BADGE_W_MM = 70

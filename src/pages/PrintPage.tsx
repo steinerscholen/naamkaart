@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../store'
 import type { SlotState } from '../types'
-import { BADGES_PER_PAGE } from '../types'
 import { BadgePreview } from '../components/BadgePreview'
 import { StickerSheetEditor } from '../components/StickerSheetEditor'
 import { generatePDF, generatePDFByClass, generatePDFOnSheet } from '../utils/pdf'
@@ -59,9 +58,8 @@ export function PrintPage() {
     [availableSlotIndices, selectedStudents.length]
   )
 
-  const availableCount = existingSheet
-    ? availableSlotIndices.length
-    : BADGES_PER_PAGE
+  const badgesPerPage = (settings.cols ?? 3) * (settings.rows ?? 8)
+  const availableCount = existingSheet ? availableSlotIndices.length : badgesPerPage
 
   const handleGenerate = async () => {
     if (selectedStudents.length === 0) return
@@ -81,7 +79,7 @@ export function PrintPage() {
       if (!printPerClass) {
         if (sheetMode === 'new') {
           const newSheet = addSheet(`Vel ${new Date().toLocaleDateString('nl-BE')}`)
-          const usedCount = Math.min(selectedStudents.length, 24)
+          const usedCount = Math.min(selectedStudents.length, badgesPerPage)
           const nextSlots = newSheet.slots.map((s, i) =>
             i < usedCount ? 'used' : s
           ) as SlotState[]
@@ -220,6 +218,7 @@ export function PrintPage() {
                 <p className="text-xs text-slate-500 mb-2">Vinkje = gebruikt, leeg = beschikbaar. Klik om aan te passen.</p>
                 <StickerSheetEditor
                   sheet={existingSheet}
+                  cols={settings.cols ?? 3}
                   queuedSlots={queuedSlots}
                   onChange={slots => updateSheet(existingSheet.id, { slots })}
                 />
@@ -246,7 +245,7 @@ export function PrintPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Extra pagina's</span>
-              <span className="font-semibold">{Math.max(0, Math.ceil((selectedStudents.length - availableCount) / BADGES_PER_PAGE))}</span>
+              <span className="font-semibold">{Math.max(0, Math.ceil((selectedStudents.length - availableCount) / badgesPerPage))}</span>
             </div>
           </div>
 

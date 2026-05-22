@@ -3,6 +3,14 @@ import type { Student, SchoolSettings } from '../types'
 import { BADGE_W_MM, BADGE_H_MM, BADGES_PER_ROW } from '../types'
 import { friendlyClassName } from './classes'
 
+function registerFont(doc: jsPDF, settings: SchoolSettings) {
+  if (!settings.customFont) return
+  const { name, data } = settings.customFont
+  doc.addFileToVFS(`${name}.ttf`, data)
+  doc.addFont(`${name}.ttf`, name, 'normal')
+  doc.addFont(`${name}.ttf`, name, 'bold')
+}
+
 function hex2rgb(hex: string): [number, number, number] {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [30, 64, 175]
@@ -14,9 +22,9 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
-function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: number, y: number) {
-  const W = BADGE_W_MM
-  const H = BADGE_H_MM
+function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: number, y: number, fontName = 'helvetica') {
+  const W = settings.badgeW ?? BADGE_W_MM
+  const H = settings.badgeH ?? BADGE_H_MM
   const STRIP = 6.5
 
   const [ar, ag, ab] = hex2rgb(settings.accentColor || '#1e40af')
@@ -31,7 +39,7 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
   doc.rect(x, y, W, STRIP, 'F')
 
   // School name in strip (bottom-left)
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(fontName, 'bold')
   doc.setFontSize(6)
   doc.setTextColor(tr, tg, tb)
   doc.text(settings.schoolName || '', x + 2, y + STRIP - 1.2)
@@ -41,7 +49,7 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
   // Year in strip (upper-right)
   const year = settings.year || ''
   if (year) {
-    doc.setFont('helvetica', 'normal')
+    doc.setFont(fontName, 'normal')
     doc.setFontSize(5.5)
     doc.setTextColor(tr, tg, tb)
     doc.text(year, x + W - logoSpace, y + 3.2, { align: 'right' })
@@ -49,7 +57,7 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
 
   // Official class code under year (bottom-right, small)
   if (student.className) {
-    doc.setFont('helvetica', 'normal')
+    doc.setFont(fontName, 'normal')
     doc.setFontSize(4.5)
     doc.setTextColor(tr, tg, tb)
     doc.text(student.className, x + W - logoSpace, y + STRIP - 1.2, { align: 'right' })
@@ -69,7 +77,7 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
     try { doc.addImage(student.photo, 'JPEG', PX, PY, PW, PH) } catch { /* */ }
   } else {
     // Initials placeholder
-    doc.setFont('helvetica', 'bold')
+    doc.setFont(fontName, 'bold')
     doc.setFontSize(9)
     doc.setTextColor(160, 160, 160)
     const initials = `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase()
@@ -80,13 +88,13 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
   const TX = x + 24
   const TW = W - TX + x - 2
 
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(fontName, 'bold')
   doc.setFontSize(8)
   doc.setTextColor(15, 15, 15)
   const fullName = `${student.firstName} ${student.lastName}`
   doc.text(fullName, TX, y + STRIP + 6.5, { maxWidth: TW })
 
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(fontName, 'normal')
   doc.setFontSize(7)
   doc.setTextColor(60, 60, 60)
   doc.text(`Klas: ${friendlyClassName(student.className)}`, TX, y + STRIP + 12)
@@ -112,24 +120,30 @@ export function generatePDF(
   startSlot = 0
 ): jsPDF {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  registerFont(doc, settings)
+  const fontName = settings.customFont?.name ?? 'helvetica'
 
   const mTop = settings.marginTop ?? 0
   const mLeft = settings.marginLeft ?? 0
   const gX = settings.gapX ?? 0
   const gY = settings.gapY ?? 0
+  const cols = settings.cols ?? BADGES_PER_ROW
+  const badgeW = settings.badgeW ?? BADGE_W_MM
+  const badgeH = settings.badgeH ?? BADGE_H_MM
+  const perPage = cols * (settings.rows ?? 8)
 
   let slot = Math.max(0, startSlot)
 
   students.forEach((student, i) => {
-    if (i > 0 && slot >= 24) {
+    if (i > 0 && slot >= perPage) {
       doc.addPage()
       slot = 0
     }
-    const col = slot % BADGES_PER_ROW
-    const row = Math.floor(slot / BADGES_PER_ROW)
-    const x = mLeft + col * (BADGE_W_MM + gX)
-    const y = mTop + row * (BADGE_H_MM + gY)
-    drawBadge(doc, student, settings, x, y)
+    const col = slot % cols
+    const row = Math.floor(slot / cols)
+    const x = mLeft + col * (badgeW + gX)
+    const y = mTop + row * (badgeH + gY)
+    drawBadge(doc, student, settings, x, y, fontName)
     slot++
   })
 
@@ -144,26 +158,31 @@ export function generatePDFOnSheet(
   availableSlotIndices: number[]
 ): jsPDF {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  registerFont(doc, settings)
+  const fontName = settings.customFont?.name ?? 'helvetica'
 
   const mTop = settings.marginTop ?? 0
   const mLeft = settings.marginLeft ?? 0
   const gX = settings.gapX ?? 0
   const gY = settings.gapY ?? 0
+  const cols = settings.cols ?? BADGES_PER_ROW
+  const badgeW = settings.badgeW ?? BADGE_W_MM
+  const badgeH = settings.badgeH ?? BADGE_H_MM
+  const perPage = cols * (settings.rows ?? 8)
 
   students.forEach((student, i) => {
     if (i < availableSlotIndices.length) {
       const slot = availableSlotIndices[i]
-      const col = slot % BADGES_PER_ROW
-      const row = Math.floor(slot / BADGES_PER_ROW)
-      drawBadge(doc, student, settings, mLeft + col * (BADGE_W_MM + gX), mTop + row * (BADGE_H_MM + gY))
+      const col = slot % cols
+      const row = Math.floor(slot / cols)
+      drawBadge(doc, student, settings, mLeft + col * (badgeW + gX), mTop + row * (badgeH + gY), fontName)
     } else {
-      // Overflow: fresh page(s), sequential from slot 0
       const overflow = i - availableSlotIndices.length
-      if (overflow % 24 === 0) doc.addPage()
-      const slot = overflow % 24
-      const col = slot % BADGES_PER_ROW
-      const row = Math.floor(slot / BADGES_PER_ROW)
-      drawBadge(doc, student, settings, mLeft + col * (BADGE_W_MM + gX), mTop + row * (BADGE_H_MM + gY))
+      if (overflow % perPage === 0) doc.addPage()
+      const slot = overflow % perPage
+      const col = slot % cols
+      const row = Math.floor(slot / cols)
+      drawBadge(doc, student, settings, mLeft + col * (badgeW + gX), mTop + row * (badgeH + gY), fontName)
     }
   })
 
@@ -175,11 +194,17 @@ export function generatePDFByClass(
   settings: SchoolSettings
 ): jsPDF {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  registerFont(doc, settings)
+  const fontName = settings.customFont?.name ?? 'helvetica'
 
   const mTop = settings.marginTop ?? 0
   const mLeft = settings.marginLeft ?? 0
   const gX = settings.gapX ?? 0
   const gY = settings.gapY ?? 0
+  const cols = settings.cols ?? BADGES_PER_ROW
+  const badgeW = settings.badgeW ?? BADGE_W_MM
+  const badgeH = settings.badgeH ?? BADGE_H_MM
+  const perPage = cols * (settings.rows ?? 8)
 
   const groups = new Map<string, Student[]>()
   for (const student of students) {
@@ -194,13 +219,11 @@ export function generatePDFByClass(
     firstPage = false
 
     classStudents.forEach((student, i) => {
-      if (i > 0 && i % 24 === 0) doc.addPage()
-      const slot = i % 24
-      const col = slot % BADGES_PER_ROW
-      const row = Math.floor(slot / BADGES_PER_ROW)
-      const x = mLeft + col * (BADGE_W_MM + gX)
-      const y = mTop + row * (BADGE_H_MM + gY)
-      drawBadge(doc, student, settings, x, y)
+      if (i > 0 && i % perPage === 0) doc.addPage()
+      const slot = i % perPage
+      const col = slot % cols
+      const row = Math.floor(slot / cols)
+      drawBadge(doc, student, settings, mLeft + col * (badgeW + gX), mTop + row * (badgeH + gY), fontName)
     })
   }
 
