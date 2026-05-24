@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+# Run this workflow every time a commit is pushed to main
+on:
+  push:
+    branches: [main]
+
+# Allow the workflow to publish to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only run one deployment at a time
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # 1. Check out the code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Install Node.js
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # 3. Install dependencies (same as running npm install locally)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build the app (same as running npm run build locally)
+      - name: Build
+        run: npm run build
+
+      # 5. Upload the dist/ folder to GitHub Pages
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      # 6. Publish it live
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
