@@ -23,7 +23,7 @@ function AppShell() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-6 h-14">
-          <span className="font-bold text-slate-800 text-lg shrink-0">Student Badges</span>
+          <span className="font-bold text-slate-800 text-lg shrink-0">Naamkaart</span>
           <nav className="flex gap-1 flex-1">
             {tabs.map(t => (
               <button
