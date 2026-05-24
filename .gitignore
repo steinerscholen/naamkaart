@@ -2,3 +2,15 @@ node_modules/
 dist/
 .DS_Store
 *.local
+
+# School-specific assets — keep locally, never commit
+# (logos, custom fonts, exported CSVs, photos)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ttf
+*.otf
+*.woff
+*.woff2
+*.csv
