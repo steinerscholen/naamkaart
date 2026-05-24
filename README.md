@@ -1,4 +1,4 @@
-# Student Badges
+# Naamkaart
 
 A local-first web app for generating student ID badge sticker sheets, bicycle pass (fietspas) badges, and event name tags — built for Steiner schools.
 
@@ -29,8 +29,8 @@ You need [Node.js](https://nodejs.org) (v18 or higher) installed.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/tngvndrm/student-badges.git
-cd student-badges
+git clone https://github.com/steinerscholen/naamkaart.git
+cd naamkaart
 
 # 2. Install dependencies
 npm install
