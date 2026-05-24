@@ -23,7 +23,7 @@ function AppShell() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-6 h-14">
-          <span className="font-bold text-slate-800 text-lg shrink-0">Naamkaart</span>
+          <span className="font-bold text-slate-800 text-lg shrink-0">Naamkaartje</span>
           <nav className="flex gap-1 flex-1">
             {tabs.map(t => (
               <button
@@ -56,6 +56,30 @@ function AppShell() {
         {tab === 'nametags' && <NaamkaartjesPage />}
         {tab === 'settings' && <SettingsPage />}
       </main>
+
+      <footer className="border-t border-slate-100 py-4">
+        <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+          {/* Belfort van Gent */}
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+            <rect x="0" y="0" width="2" height="3"/>
+            <rect x="3" y="0" width="2" height="3"/>
+            <rect x="6" y="0" width="2" height="3"/>
+            <rect x="9" y="0" width="1" height="3"/>
+            <rect x="1" y="3" width="8" height="9"/>
+            <rect x="3" y="5" width="4" height="3" fill="white" opacity="0.35"/>
+            <rect x="3" y="12" width="4" height="4"/>
+          </svg>
+          Made in Gent by{' '}
+          <a
+            href="https://github.com/tngvndrm"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-slate-600 underline underline-offset-2"
+          >
+            tngvndrm
+          </a>
+        </div>
+      </footer>
     </div>
   )
 }
