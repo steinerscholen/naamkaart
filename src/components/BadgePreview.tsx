@@ -65,7 +65,7 @@ export function BadgePreview({ student, settings, scale = 3 }: Props) {
               {student.className}
             </span>
           </div>
-          {settings.logo && (
+          {settings.logo && settings.logoPosition === 'strip' && (
             <img src={settings.logo} alt="" style={{ height: STRIP - s, maxWidth: 12 * s, objectFit: 'contain' }} />
           )}
         </div>
@@ -106,8 +106,12 @@ export function BadgePreview({ student, settings, scale = 3 }: Props) {
           borderTop: `${0.3 * s}px solid #e5e7eb`,
           paddingTop: 0.8 * s,
           fontSize: pt(5.5), color: '#888',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          {settings.website}
+          <span>{settings.website}</span>
+          {settings.logo && settings.logoPosition !== 'strip' && (
+            <img src={settings.logo} alt="" style={{ maxHeight: 6 * s, maxWidth: 10 * s, objectFit: 'contain' }} />
+          )}
         </div>
       </div>
     </div>

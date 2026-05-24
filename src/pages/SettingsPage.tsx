@@ -95,6 +95,22 @@ export function SettingsPage() {
                 Logo verwijderen
               </button>
             )}
+            {settings.logo && (
+              <div className="mt-2 flex rounded-lg border border-slate-200 overflow-hidden text-xs font-medium w-fit">
+                <button
+                  onClick={() => { updateSettings({ logoPosition: 'bottom-right' }); setSaved(false) }}
+                  className={`px-3 py-1.5 transition-colors ${settings.logoPosition !== 'strip' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  Onder rechts
+                </button>
+                <button
+                  onClick={() => { updateSettings({ logoPosition: 'strip' }); setSaved(false) }}
+                  className={`px-3 py-1.5 border-l border-slate-200 transition-colors ${settings.logoPosition === 'strip' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  Strip (boven)
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

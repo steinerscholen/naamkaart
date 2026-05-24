@@ -44,7 +44,8 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
   doc.setTextColor(tr, tg, tb)
   doc.text(settings.schoolName || '', x + 2, y + STRIP - 1.2)
 
-  const logoSpace = settings.logo ? 13 : 2
+  const logoInStrip = settings.logo && settings.logoPosition === 'strip'
+  const logoSpace = logoInStrip ? 13 : 2
 
   // Year in strip (upper-right)
   const year = settings.year || ''
@@ -63,10 +64,10 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
     doc.text(student.className, x + W - logoSpace, y + STRIP - 1.2, { align: 'right' })
   }
 
-  // Logo in strip
-  if (settings.logo) {
-    const fmt = settings.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-    try { doc.addImage(settings.logo, fmt, x + W - 12.5, y + 0.5, 12, STRIP - 1) } catch { /* */ }
+  // Logo — strip position (top-right in accent band)
+  if (logoInStrip) {
+    const fmt = settings.logo!.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+    try { doc.addImage(settings.logo!, fmt, x + W - 12.5, y + 0.5, 12, STRIP - 1) } catch { /* */ }
   }
 
   // Photo
@@ -103,10 +104,19 @@ function drawBadge(doc: jsPDF, student: Student, settings: SchoolSettings, x: nu
     doc.text(`Geb.: ${fmtDate(student.birthday)}`, TX, y + STRIP + 17)
   }
 
-  // Divider
+  // Logo — bottom-right position (footer zone, right of website)
+  const logoBottomRight = settings.logo && settings.logoPosition !== 'strip'
+  const logoW = 10, logoH = 6
+  if (logoBottomRight) {
+    const fmt = settings.logo!.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+    try { doc.addImage(settings.logo!, fmt, x + W - logoW - 1.5, y + H - logoH - 1.5, logoW, logoH) } catch { /* */ }
+  }
+
+  // Divider (stops short of logo when logo is at bottom-right)
+  const dividerRight = logoBottomRight ? x + W - logoW - 4 : x + W - 2
   doc.setDrawColor(210, 210, 210)
   doc.setLineWidth(0.2)
-  doc.line(TX, y + H - 8.5, x + W - 2, y + H - 8.5)
+  doc.line(TX, y + H - 8.5, dividerRight, y + H - 8.5)
 
   // Website
   doc.setFontSize(5.5)

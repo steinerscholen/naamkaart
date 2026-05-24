@@ -24,6 +24,7 @@ export interface SchoolSettings {
   badgeW: number // mm, sticker width
   badgeH: number // mm, sticker height
   customFont?: { name: string; data: string } // display name + base64 TTF
+  logoPosition: 'bottom-right' | 'strip' // where to place the logo on the badge
   fietspasAccentColor: string // hex
   fietspasAccentTextColor: string // hex
 }
@@ -58,6 +59,7 @@ export const DEFAULT_SETTINGS: SchoolSettings = {
   rows: 8,
   badgeW: 70,
   badgeH: 37,
+  logoPosition: 'bottom-right',
   fietspasAccentColor: '#16a34a',
   fietspasAccentTextColor: '#ffffff',
 }
