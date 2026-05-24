@@ -5,6 +5,7 @@ export interface Student {
   className: string
   birthday: string // YYYY-MM-DD or ''
   photo?: string // base64 data URL (compressed JPEG)
+  hasFietspas?: boolean
 }
 
 export interface SchoolSettings {
@@ -23,6 +24,15 @@ export interface SchoolSettings {
   badgeW: number // mm, sticker width
   badgeH: number // mm, sticker height
   customFont?: { name: string; data: string } // display name + base64 TTF
+  fietspasAccentColor: string // hex
+  fietspasAccentTextColor: string // hex
+}
+
+export interface Nametag {
+  id: string
+  firstName: string
+  lastName: string
+  role: string // e.g. "Leerkracht wiskunde" or "Directie"
 }
 
 export type SlotState = 'available' | 'used'
@@ -48,6 +58,8 @@ export const DEFAULT_SETTINGS: SchoolSettings = {
   rows: 8,
   badgeW: 70,
   badgeH: 37,
+  fietspasAccentColor: '#16a34a',
+  fietspasAccentTextColor: '#ffffff',
 }
 
 export const BADGE_W_MM = 70

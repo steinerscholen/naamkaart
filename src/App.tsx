@@ -3,17 +3,19 @@ import { StoreProvider, useStore } from './store'
 import { StudentsPage } from './pages/StudentsPage'
 import { PrintPage } from './pages/PrintPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { NaamkaartjesPage } from './pages/NaamkaartjesPage'
 
-type Tab = 'students' | 'print' | 'settings'
+type Tab = 'students' | 'print' | 'nametags' | 'settings'
 
 function AppShell() {
   const [tab, setTab] = useState<Tab>('students')
-  const { students } = useStore()
+  const { students, nametags } = useStore()
   const noPhoto = students.filter(s => !s.photo).length
 
   const tabs: { id: Tab; label: string; badge?: number }[] = [
     { id: 'students', label: 'Leerlingen', badge: students.length },
     { id: 'print', label: 'Afdrukken' },
+    { id: 'nametags', label: 'Naamkaartjes', badge: nametags.length || undefined },
     { id: 'settings', label: 'Instellingen' },
   ]
 
@@ -51,6 +53,7 @@ function AppShell() {
       <main className="flex-1">
         {tab === 'students' && <StudentsPage />}
         {tab === 'print' && <PrintPage />}
+        {tab === 'nametags' && <NaamkaartjesPage />}
         {tab === 'settings' && <SettingsPage />}
       </main>
     </div>

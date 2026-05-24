@@ -8,6 +8,7 @@ import { friendlyClassName } from '../utils/classes'
 
 type SheetMode = 'new' | 'existing'
 type PhotoFilter = 'all' | 'with' | 'without'
+type BadgeType = 'student' | 'fietspas'
 
 export function PrintPage() {
   const { students, settings, sheets, addSheet, updateSheet } = useStore()
@@ -15,6 +16,7 @@ export function PrintPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [filter, setFilter] = useState('')
   const [photoFilter, setPhotoFilter] = useState<PhotoFilter>('all')
+  const [badgeType, setBadgeType] = useState<BadgeType>('student')
   const [sheetMode, setSheetMode] = useState<SheetMode>('new')
   const [existingSheetId, setExistingSheetId] = useState<string>('')
   const [generating, setGenerating] = useState(false)
@@ -26,8 +28,16 @@ export function PrintPage() {
     const q = filter.toLowerCase()
     const matchesText = !q || s.firstName.toLowerCase().includes(q) || s.lastName.toLowerCase().includes(q) || s.className.toLowerCase().includes(q)
     const matchesPhoto = photoFilter === 'all' || (photoFilter === 'with' ? !!s.photo : !s.photo)
-    return matchesText && matchesPhoto
+    const matchesBadgeType = badgeType === 'fietspas' ? !!s.hasFietspas : true
+    return matchesText && matchesPhoto && matchesBadgeType
   })
+
+  const fietspasCount = students.filter(s => s.hasFietspas).length
+
+  // Settings override for fietspas: swap accent colors
+  const printSettings = badgeType === 'fietspas'
+    ? { ...settings, accentColor: settings.fietspasAccentColor, accentTextColor: settings.fietspasAccentTextColor }
+    : settings
 
   const toggle = (id: string) => setSelected(prev => {
     const next = new Set(prev)
@@ -67,11 +77,11 @@ export function PrintPage() {
     try {
       let doc
       if (printPerClass) {
-        doc = generatePDFByClass(selectedStudents, settings)
+        doc = generatePDFByClass(selectedStudents, printSettings)
       } else if (sheetMode === 'existing' && existingSheet) {
-        doc = generatePDFOnSheet(selectedStudents, settings, availableSlotIndices)
+        doc = generatePDFOnSheet(selectedStudents, printSettings, availableSlotIndices)
       } else {
-        doc = generatePDF(selectedStudents, settings, 0)
+        doc = generatePDF(selectedStudents, printSettings, 0)
       }
       doc.save(`badges-${new Date().toISOString().slice(0, 10)}.pdf`)
 
@@ -125,6 +135,23 @@ export function PrintPage() {
             <button onClick={toggleAll} className="text-xs px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 shrink-0">
               {selected.size === filtered.length && filtered.length > 0 ? 'Niets' : 'Alles'}
             </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-medium">
+              <button
+                onClick={() => { setBadgeType('student'); setSelected(new Set()) }}
+                className={`px-3 py-1.5 transition-colors ${badgeType === 'student' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                Leerlingenbadge
+              </button>
+              <button
+                onClick={() => { setBadgeType('fietspas'); setSelected(new Set()) }}
+                className={`px-3 py-1.5 transition-colors border-l border-slate-200 ${badgeType === 'fietspas' ? 'bg-green-600 text-white border-green-600' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                🚲 Fietspas {fietspasCount > 0 && <span className="ml-1 opacity-75">({fietspasCount})</span>}
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-1">
@@ -253,7 +280,7 @@ export function PrintPage() {
           {selectedStudents.length > 0 && (
             <div>
               <p className="text-xs text-slate-400 mb-2">Voorbeeld eerste badge:</p>
-              <BadgePreview student={selectedStudents[0]} settings={settings} scale={2} />
+              <BadgePreview student={selectedStudents[0]} settings={printSettings} scale={2} />
             </div>
           )}
 

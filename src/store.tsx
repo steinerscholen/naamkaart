@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { type Student, type SchoolSettings, type StickerSheet, type SlotState, DEFAULT_SETTINGS } from './types'
+import { type Student, type Nametag, type SchoolSettings, type StickerSheet, type SlotState, DEFAULT_SETTINGS } from './types'
 
 function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -16,12 +16,17 @@ function load<T>(key: string, def: T): T {
 
 interface Store {
   students: Student[]
+  nametags: Nametag[]
   settings: SchoolSettings
   sheets: StickerSheet[]
   addStudent: (s: Omit<Student, 'id'>) => string
   updateStudent: (id: string, s: Partial<Student>) => void
   deleteStudent: (id: string) => void
   importStudents: (students: Omit<Student, 'id'>[]) => void
+  addNametag: (n: Omit<Nametag, 'id'>) => void
+  updateNametag: (id: string, n: Partial<Nametag>) => void
+  deleteNametag: (id: string) => void
+  importNametags: (nametags: Omit<Nametag, 'id'>[]) => void
   updateSettings: (s: Partial<SchoolSettings>) => void
   addSheet: (label: string) => StickerSheet
   updateSheet: (id: string, s: Partial<StickerSheet>) => void
@@ -32,10 +37,12 @@ const Ctx = createContext<Store | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [students, setStudents] = useState<Student[]>(() => load('students', []))
+  const [nametags, setNametags] = useState<Nametag[]>(() => load('nametags', []))
   const [settings, setSettings] = useState<SchoolSettings>(() => ({ ...DEFAULT_SETTINGS, ...load<Partial<SchoolSettings>>('settings', {}) }))
   const [sheets, setSheets] = useState<StickerSheet[]>(() => load('sheets', []))
 
   useEffect(() => { localStorage.setItem('students', JSON.stringify(students)) }, [students])
+  useEffect(() => { localStorage.setItem('nametags', JSON.stringify(nametags)) }, [nametags])
   useEffect(() => { localStorage.setItem('settings', JSON.stringify(settings)) }, [settings])
   useEffect(() => { localStorage.setItem('sheets', JSON.stringify(sheets)) }, [sheets])
 
@@ -53,6 +60,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const importStudents = (incoming: Omit<Student, 'id'>[]) =>
     setStudents(prev => [...prev, ...incoming.map(s => ({ ...s, id: uid() }))])
+
+  const addNametag = (n: Omit<Nametag, 'id'>) =>
+    setNametags(prev => [...prev, { ...n, id: uid() }])
+
+  const updateNametag = (id: string, n: Partial<Nametag>) =>
+    setNametags(prev => prev.map(t => t.id === id ? { ...t, ...n } : t))
+
+  const deleteNametag = (id: string) =>
+    setNametags(prev => prev.filter(t => t.id !== id))
+
+  const importNametags = (incoming: Omit<Nametag, 'id'>[]) =>
+    setNametags(prev => [...prev, ...incoming.map(n => ({ ...n, id: uid() }))])
 
   const updateSettings = (s: Partial<SchoolSettings>) =>
     setSettings(prev => ({ ...DEFAULT_SETTINGS, ...prev, ...s }))
@@ -77,8 +96,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      students, settings, sheets,
+      students, nametags, settings, sheets,
       addStudent, updateStudent, deleteStudent, importStudents,
+      addNametag, updateNametag, deleteNametag, importNametags,
       updateSettings,
       addSheet, updateSheet, deleteSheet,
     }}>

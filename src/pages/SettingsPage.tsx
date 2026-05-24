@@ -139,6 +139,35 @@ export function SettingsPage() {
           </div>
 
           <div className="border-t border-slate-100 pt-4 space-y-3">
+            <h2 className="font-semibold text-slate-700">🚲 Fietspas kleuren</h2>
+            <p className="text-xs text-slate-400 -mt-1">De fietspas heeft dezelfde lay-out als de leerlingenbadge, maar met een andere accentkleur.</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-xs font-medium text-slate-600">Accentkleur fietspas</span>
+                <div className="mt-1 flex items-center gap-2">
+                  <input type="color" value={settings.fietspasAccentColor} onChange={set('fietspasAccentColor')} className="w-10 h-8 rounded cursor-pointer" />
+                  <input className="input flex-1 font-mono text-xs" value={settings.fietspasAccentColor} onChange={set('fietspasAccentColor')} />
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-slate-600">Tekstkleur strip</span>
+                <div className="mt-1 flex items-center gap-2">
+                  <input type="color" value={settings.fietspasAccentTextColor} onChange={set('fietspasAccentTextColor')} className="w-10 h-8 rounded cursor-pointer" />
+                  <input className="input flex-1 font-mono text-xs" value={settings.fietspasAccentTextColor} onChange={set('fietspasAccentTextColor')} />
+                </div>
+              </label>
+            </div>
+
+            <div
+              className="rounded px-3 py-1.5 text-sm font-semibold truncate"
+              style={{ backgroundColor: settings.fietspasAccentColor, color: settings.fietspasAccentTextColor }}
+            >
+              {settings.schoolName || 'Naam school'} &nbsp;·&nbsp; Fietspas
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-4 space-y-3">
             <h2 className="font-semibold text-slate-700">Stickervel formaat</h2>
 
             <label className="block">

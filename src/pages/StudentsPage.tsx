@@ -88,14 +88,28 @@ export function StudentsPage() {
             <div key={s.id} className="flex items-center gap-4 bg-white border border-slate-100 rounded-xl p-3 hover:border-slate-200 transition-colors">
               <BadgePreview student={s} settings={settings} scale={1.3} />
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-800">{s.firstName} {s.lastName}</p>
+                <p className="font-semibold text-slate-800 flex items-center gap-2">
+                  {s.firstName} {s.lastName}
+                  {s.hasFietspas && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 border border-green-200 rounded-full px-2 py-0.5 font-medium">
+                      🚲 Fietspas
+                    </span>
+                  )}
+                </p>
                 <p className="text-sm text-slate-500">
                   Klas: {friendlyClassName(s.className) || '—'}
                   {s.birthday && <span className="ml-3">Geb.: {s.birthday.split('-').reverse().join('/')}</span>}
                 </p>
                 {!s.photo && <p className="text-xs text-amber-500 mt-0.5">Geen foto</p>}
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex gap-2 shrink-0 items-center">
+                <button
+                  onClick={() => updateStudent(s.id, { hasFietspas: !s.hasFietspas })}
+                  title={s.hasFietspas ? 'Fietspas verwijderen' : 'Fietspas toekennen'}
+                  className={`px-2 py-1.5 text-xs border rounded-lg transition-colors ${s.hasFietspas ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' : 'border-slate-200 text-slate-400 hover:bg-slate-50'}`}
+                >
+                  🚲
+                </button>
                 <button onClick={() => setEditing(s)} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg hover:bg-slate-50">
                   Bewerken
                 </button>
@@ -151,7 +165,7 @@ function StudentFormModal({
   onClose: () => void
 }) {
   const [form, setForm] = useState<Omit<Student, 'id'>>(
-    initial ? { firstName: initial.firstName, lastName: initial.lastName, className: initial.className, birthday: initial.birthday, photo: initial.photo }
+    initial ? { firstName: initial.firstName, lastName: initial.lastName, className: initial.className, birthday: initial.birthday, photo: initial.photo, hasFietspas: initial.hasFietspas }
       : { ...EMPTY }
   )
 
@@ -190,6 +204,19 @@ function StudentFormModal({
             <input type="date" className="input mt-1 w-full" value={form.birthday} onChange={set('birthday')} />
           </label>
         </div>
+        <label className="flex items-center gap-3 cursor-pointer select-none bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+          <input
+            type="checkbox"
+            checked={!!form.hasFietspas}
+            onChange={e => setForm(f => ({ ...f, hasFietspas: e.target.checked }))}
+            className="rounded text-green-600"
+          />
+          <div>
+            <p className="text-sm font-medium text-green-800">🚲 Fietspas</p>
+            <p className="text-xs text-green-600">Leerling mag een schoolfiets lenen</p>
+          </div>
+        </label>
+
         <div>
           <span className="text-xs font-medium text-slate-600">Foto</span>
           <div className="mt-1 flex items-center gap-3">
