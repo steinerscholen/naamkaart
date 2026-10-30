@@ -259,7 +259,11 @@ function ImportCSVModal({ onImport, onClose }: { onImport: (rows: Omit<Student, 
     const result = isExcel ? await parseExcel(file) : await parseCSV(file)
     setHeaders(result.headers)
     setRows(result.rows)
-    setMap(guessColumns(result.headers))
+    const guessed = guessColumns(result.headers)
+    setMap(guessed)
+    if (guessed.firstName && guessed.lastName && guessed.className) {
+      setPreview(mapToStudents(result.rows, guessed as ColumnMap))
+    }
   }
 
   const updateMap = (k: keyof ColumnMap) => (e: ChangeEvent<HTMLSelectElement>) => {
