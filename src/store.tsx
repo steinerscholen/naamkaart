@@ -23,6 +23,7 @@ interface Store {
   updateStudent: (id: string, s: Partial<Student>) => void
   deleteStudent: (id: string) => void
   importStudents: (students: Omit<Student, 'id'>[]) => void
+  bulkUpdateStudents: (updates: { id: string; patch: Partial<Student> }[]) => void
   addNametag: (n: Omit<Nametag, 'id'>) => void
   updateNametag: (id: string, n: Partial<Nametag>) => void
   deleteNametag: (id: string) => void
@@ -61,6 +62,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const importStudents = (incoming: Omit<Student, 'id'>[]) =>
     setStudents(prev => [...prev, ...incoming.map(s => ({ ...s, id: uid() }))])
 
+  const bulkUpdateStudents = (updates: { id: string; patch: Partial<Student> }[]) => {
+    const map = new Map(updates.map(u => [u.id, u.patch]))
+    setStudents(prev => prev.map(st => {
+      const patch = map.get(st.id)
+      return patch ? { ...st, ...patch } : st
+    }))
+  }
+
   const addNametag = (n: Omit<Nametag, 'id'>) =>
     setNametags(prev => [...prev, { ...n, id: uid() }])
 
@@ -97,7 +106,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{
       students, nametags, settings, sheets,
-      addStudent, updateStudent, deleteStudent, importStudents,
+      addStudent, updateStudent, deleteStudent, importStudents, bulkUpdateStudents,
       addNametag, updateNametag, deleteNametag, importNametags,
       updateSettings,
       addSheet, updateSheet, deleteSheet,
