@@ -1,4 +1,5 @@
 import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
 import type { Student } from '../types'
 
 export interface CSVResult {
@@ -26,6 +27,29 @@ async function readFileText(file: File): Promise<string> {
   } catch {
     return new TextDecoder('windows-1252').decode(buffer)
   }
+}
+
+export async function parseExcel(file: File): Promise<CSVResult> {
+  const buffer = await file.arrayBuffer()
+  const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
+  if (raw.length === 0) return { headers: [], rows: [] }
+  const headers = Object.keys(raw[0])
+  const rows = raw.map(r =>
+    Object.fromEntries(
+      headers.map(h => {
+        const v = r[h]
+        // Excel date objects (when cellDates:true) → ISO string
+        if (v instanceof Date) {
+          const iso = v.toISOString().slice(0, 10)
+          return [h, iso]
+        }
+        return [h, v == null ? '' : String(v)]
+      })
+    )
+  )
+  return { headers, rows }
 }
 
 export async function parseCSV(file: File): Promise<CSVResult> {
