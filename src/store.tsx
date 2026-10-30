@@ -23,6 +23,7 @@ interface Store {
   updateStudent: (id: string, s: Partial<Student>) => void
   deleteStudent: (id: string) => void
   importStudents: (students: Omit<Student, 'id'>[]) => void
+  bulkUpdateStudents: (updates: { id: string; patch: Partial<Student> }[]) => void
   addNametag: (n: Omit<Nametag, 'id'>) => void
   updateNametag: (id: string, n: Partial<Nametag>) => void
   deleteNametag: (id: string) => void
@@ -41,10 +42,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SchoolSettings>(() => ({ ...DEFAULT_SETTINGS, ...load<Partial<SchoolSettings>>('settings', {}) }))
   const [sheets, setSheets] = useState<StickerSheet[]>(() => load('sheets', []))
 
-  useEffect(() => { localStorage.setItem('students', JSON.stringify(students)) }, [students])
-  useEffect(() => { localStorage.setItem('nametags', JSON.stringify(nametags)) }, [nametags])
-  useEffect(() => { localStorage.setItem('settings', JSON.stringify(settings)) }, [settings])
-  useEffect(() => { localStorage.setItem('sheets', JSON.stringify(sheets)) }, [sheets])
+  useEffect(() => { try { localStorage.setItem('students', JSON.stringify(students)) } catch { console.error('localStorage vol: foto\'s nemen te veel ruimte in') } }, [students])
+  useEffect(() => { try { localStorage.setItem('nametags', JSON.stringify(nametags)) } catch { /* ignore */ } }, [nametags])
+  useEffect(() => { try { localStorage.setItem('settings', JSON.stringify(settings)) } catch { /* ignore */ } }, [settings])
+  useEffect(() => { try { localStorage.setItem('sheets', JSON.stringify(sheets)) } catch { /* ignore */ } }, [sheets])
 
   const addStudent = (s: Omit<Student, 'id'>): string => {
     const id = uid()
@@ -60,6 +61,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const importStudents = (incoming: Omit<Student, 'id'>[]) =>
     setStudents(prev => [...prev, ...incoming.map(s => ({ ...s, id: uid() }))])
+
+  const bulkUpdateStudents = (updates: { id: string; patch: Partial<Student> }[]) => {
+    const map = new Map(updates.map(u => [u.id, u.patch]))
+    setStudents(prev => prev.map(st => {
+      const patch = map.get(st.id)
+      return patch ? { ...st, ...patch } : st
+    }))
+  }
 
   const addNametag = (n: Omit<Nametag, 'id'>) =>
     setNametags(prev => [...prev, { ...n, id: uid() }])
@@ -97,7 +106,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{
       students, nametags, settings, sheets,
-      addStudent, updateStudent, deleteStudent, importStudents,
+      addStudent, updateStudent, deleteStudent, importStudents, bulkUpdateStudents,
       addNametag, updateNametag, deleteNametag, importNametags,
       updateSettings,
       addSheet, updateSheet, deleteSheet,

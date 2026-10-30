@@ -10,7 +10,7 @@ import { parseCSV, parseExcel, guessColumns, mapToStudents, type ColumnMap } fro
 const EMPTY: Omit<Student, 'id'> = { firstName: '', lastName: '', className: '', birthday: '' }
 
 export function StudentsPage() {
-  const { students, settings, addStudent, updateStudent, deleteStudent, importStudents } = useStore()
+  const { students, settings, addStudent, updateStudent, deleteStudent, importStudents, bulkUpdateStudents } = useStore()
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Student | null>(null)
   const [adding, setAdding] = useState(false)
@@ -147,7 +147,7 @@ export function StudentsPage() {
       {showPhotoMatch && (
         <PhotoMatchModal
           students={students}
-          onUpdate={updateStudent}
+          onBulkUpdate={bulkUpdateStudents}
           onClose={() => setShowPhotoMatch(false)}
         />
       )}
@@ -259,7 +259,11 @@ function ImportCSVModal({ onImport, onClose }: { onImport: (rows: Omit<Student, 
     const result = isExcel ? await parseExcel(file) : await parseCSV(file)
     setHeaders(result.headers)
     setRows(result.rows)
-    setMap(guessColumns(result.headers))
+    const guessed = guessColumns(result.headers)
+    setMap(guessed)
+    if (guessed.firstName && guessed.lastName && guessed.className) {
+      setPreview(mapToStudents(result.rows, guessed as ColumnMap))
+    }
   }
 
   const updateMap = (k: keyof ColumnMap) => (e: ChangeEvent<HTMLSelectElement>) => {
@@ -335,35 +339,38 @@ function ImportCSVModal({ onImport, onClose }: { onImport: (rows: Omit<Student, 
 // ─── Photo Match Modal ──────────────────────────────────────────────────────
 
 function PhotoMatchModal({
-  students, onUpdate, onClose,
+  students, onBulkUpdate, onClose,
 }: {
   students: Student[]
-  onUpdate: (id: string, s: Partial<Student>) => void
+  onBulkUpdate: (updates: { id: string; patch: Partial<Student> }[]) => void
   onClose: () => void
 }) {
   const [matches, setMatches] = useState<Array<{ file: File; studentId: string | null; studentName?: string; preview?: string; assigned?: string }>>([])
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFolder = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     const result = matchPhotos(files, students)
-    const withPreviews = await Promise.all(result.map(async m => ({
-      ...m,
-      preview: await compressImage(m.file),
-      assigned: m.studentId ?? '',
-    })))
+    setProgress({ done: 0, total: result.length })
+    const withPreviews: typeof matches = []
+    for (const m of result) {
+      const preview = await compressImage(m.file)
+      withPreviews.push({ ...m, preview, assigned: m.studentId ?? '' })
+      setProgress(p => p ? { ...p, done: p.done + 1 } : null)
+    }
     setMatches(withPreviews)
+    setProgress(null)
   }
 
   const matched = matches.filter(m => m.assigned)
   const unmatched = matches.filter(m => !m.assigned)
 
-  const applyMatches = async () => {
-    for (const m of matches) {
-      if (m.assigned && m.preview) {
-        onUpdate(m.assigned, { photo: m.preview })
-      }
-    }
+  const applyMatches = () => {
+    const updates = matches
+      .filter(m => m.assigned && m.preview)
+      .map(m => ({ id: m.assigned!, patch: { photo: m.preview } }))
+    onBulkUpdate(updates)
     onClose()
   }
 
@@ -384,6 +391,21 @@ function PhotoMatchModal({
           onChange={handleFolder}
           className="text-sm"
         />
+
+        {progress && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-slate-500">
+              <span>Foto's verwerken…</span>
+              <span>{progress.done} / {progress.total}</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-indigo-500 h-2 rounded-full transition-all duration-150"
+                style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {matches.length > 0 && (
           <div className="space-y-3">
