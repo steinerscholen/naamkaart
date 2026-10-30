@@ -113,6 +113,20 @@ export function SettingsPage() {
             )}
           </div>
 
+          <div>
+            <span className="text-xs font-medium text-slate-600">Foto-zoom</span>
+            <div className="mt-1 flex items-center gap-3">
+              <input
+                type="range" min="1" max="2.5" step="0.05"
+                value={settings.photoZoom ?? 1}
+                onChange={e => { updateSettings({ photoZoom: parseFloat(e.target.value) }); setSaved(false) }}
+                className="flex-1"
+              />
+              <span className="text-xs text-slate-500 w-10 text-right">{((settings.photoZoom ?? 1) * 100).toFixed(0)}%</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">Vergroot de foto zodat het gezicht van de leerling meer op de voorgrond staat.</p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-xs font-medium text-slate-600">Accentkleur</span>

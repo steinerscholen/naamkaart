@@ -78,7 +78,12 @@ export function BadgePreview({ student, settings, scale = 3 }: Props) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {student.photo
-          ? <img src={student.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={student.photo} alt="" style={{
+              width: '100%', height: '100%', objectFit: 'cover',
+              objectPosition: 'top center',
+              transform: `scale(${settings.photoZoom ?? 1})`,
+              transformOrigin: 'top center',
+            }} />
           : <span style={{ fontSize: pt(9), fontWeight: 'bold', color: '#9ca3af' }}>
               {student.firstName.charAt(0)}{student.lastName.charAt(0)}
             </span>

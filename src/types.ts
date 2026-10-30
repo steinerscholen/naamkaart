@@ -27,6 +27,7 @@ export interface SchoolSettings {
   logoPosition: 'bottom-right' | 'strip' // where to place the logo on the badge
   fietspasAccentColor: string // hex
   fietspasAccentTextColor: string // hex
+  photoZoom: number // scale factor for the photo, 1.0 = fill frame
 }
 
 export interface Nametag {
@@ -62,6 +63,7 @@ export const DEFAULT_SETTINGS: SchoolSettings = {
   logoPosition: 'bottom-right',
   fietspasAccentColor: '#16a34a',
   fietspasAccentTextColor: '#ffffff',
+  photoZoom: 1.0,
 }
 
 export const BADGE_W_MM = 70
