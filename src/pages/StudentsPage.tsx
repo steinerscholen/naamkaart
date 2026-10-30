@@ -5,7 +5,7 @@ import { BadgePreview } from '../components/BadgePreview'
 import { friendlyClassName } from '../utils/classes'
 import { Modal } from '../components/Modal'
 import { compressImage, matchPhotos } from '../utils/images'
-import { parseCSV, guessColumns, mapToStudents, type ColumnMap } from '../utils/csv'
+import { parseCSV, parseExcel, guessColumns, mapToStudents, type ColumnMap } from '../utils/csv'
 
 const EMPTY: Omit<Student, 'id'> = { firstName: '', lastName: '', className: '', birthday: '' }
 
@@ -46,7 +46,7 @@ export function StudentsPage() {
             onClick={() => setShowImport(true)}
             className="px-3 py-2 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100"
           >
-            CSV importeren
+            Importeren
           </button>
           <button
             onClick={() => setAdding(true)}
@@ -80,7 +80,7 @@ export function StudentsPage() {
 
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
-          {students.length === 0 ? 'Nog geen leerlingen. Importeer een CSV of voeg er handmatig toe.' : 'Geen resultaten.'}
+          {students.length === 0 ? 'Nog geen leerlingen. Importeer een Excel of CSV, of voeg er handmatig toe.' : 'Geen resultaten.'}
         </div>
       ) : (
         <div className="grid gap-3">
@@ -255,7 +255,8 @@ function ImportCSVModal({ onImport, onClose }: { onImport: (rows: Omit<Student, 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const result = await parseCSV(file)
+    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.xlsm')
+    const result = isExcel ? await parseExcel(file) : await parseCSV(file)
     setHeaders(result.headers)
     setRows(result.rows)
     setMap(guessColumns(result.headers))
@@ -274,10 +275,10 @@ function ImportCSVModal({ onImport, onClose }: { onImport: (rows: Omit<Student, 
   }
 
   return (
-    <Modal title="CSV importeren" onClose={onClose} wide>
+    <Modal title="Leerlingen importeren" onClose={onClose} wide>
       <div className="space-y-4">
-        <p className="text-sm text-slate-500">Exporteer een leerlingenlijst uit Smartschool als CSV en laad hem hier in.</p>
-        <input type="file" accept=".csv,.txt" onChange={handleFile} className="text-sm" />
+        <p className="text-sm text-slate-500">Laad een leerlingenlijst in vanuit Smartschool — als Excel (.xlsx) of als CSV.</p>
+        <input type="file" accept=".csv,.txt,.xlsx,.xls,.xlsm" onChange={handleFile} className="text-sm" />
 
         {headers.length > 0 && (
           <>
