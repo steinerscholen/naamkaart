@@ -12,6 +12,7 @@ const EMPTY: Omit<Student, 'id'> = { firstName: '', lastName: '', className: '',
 export function StudentsPage() {
   const { students, settings, addStudent, updateStudent, deleteStudent, importStudents, bulkUpdateStudents } = useStore()
   const [search, setSearch] = useState('')
+  const [photoFilter, setPhotoFilter] = useState<'all' | 'with' | 'without'>('all')
   const [editing, setEditing] = useState<Student | null>(null)
   const [adding, setAdding] = useState(false)
   const [showImport, setShowImport] = useState(false)
@@ -19,11 +20,16 @@ export function StudentsPage() {
 
   const filtered = students.filter(s => {
     const q = search.toLowerCase()
-    return (
+    const matchesText = (
       s.firstName.toLowerCase().includes(q) ||
       s.lastName.toLowerCase().includes(q) ||
       s.className.toLowerCase().includes(q)
     )
+    const matchesPhoto =
+      photoFilter === 'all' ||
+      (photoFilter === 'with' && !!s.photo) ||
+      (photoFilter === 'without' && !s.photo)
+    return matchesText && matchesPhoto
   })
 
   const classes = [...new Set(students.map(s => s.className).filter(Boolean))].sort()
@@ -65,18 +71,26 @@ export function StudentsPage() {
         className="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-300"
       />
 
-      {classes.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-4">
-          <button onClick={() => setSearch('')} className={`px-2 py-1 text-xs rounded-full border ${search === '' ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            Alle
-          </button>
-          {classes.map(c => (
-            <button key={c} onClick={() => setSearch(c)} className={`px-2 py-1 text-xs rounded-full border ${search === c ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-              {friendlyClassName(c)}
+      <div className="flex flex-wrap gap-1 mb-4">
+        {classes.length > 0 && (
+          <>
+            <button onClick={() => setSearch('')} className={`px-2 py-1 text-xs rounded-full border ${search === '' ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+              Alle klassen
             </button>
-          ))}
-        </div>
-      )}
+            {classes.map(c => (
+              <button key={c} onClick={() => setSearch(c)} className={`px-2 py-1 text-xs rounded-full border ${search === c ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {friendlyClassName(c)}
+              </button>
+            ))}
+            <span className="border-l border-slate-200 mx-1" />
+          </>
+        )}
+        {(['all', 'with', 'without'] as const).map(f => (
+          <button key={f} onClick={() => setPhotoFilter(f)} className={`px-2 py-1 text-xs rounded-full border ${photoFilter === f ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            {f === 'all' ? 'Alle foto\'s' : f === 'with' ? '📷 Met foto' : '❌ Zonder foto'}
+          </button>
+        ))}
+      </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
