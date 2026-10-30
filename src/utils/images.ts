@@ -1,4 +1,4 @@
-export async function compressImage(file: File, maxW = 300, maxH = 400): Promise<string> {
+export async function compressImage(file: File, maxW = 150, maxH = 200): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -12,7 +12,7 @@ export async function compressImage(file: File, maxW = 300, maxH = 400): Promise
         canvas.height = h
         const ctx = canvas.getContext('2d')!
         ctx.drawImage(img, 0, 0, w, h)
-        resolve(canvas.toDataURL('image/jpeg', 0.78))
+        resolve(canvas.toDataURL('image/jpeg', 0.65))
       }
       img.onerror = () => reject(new Error('Failed to load image'))
       img.src = e.target?.result as string

@@ -42,10 +42,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SchoolSettings>(() => ({ ...DEFAULT_SETTINGS, ...load<Partial<SchoolSettings>>('settings', {}) }))
   const [sheets, setSheets] = useState<StickerSheet[]>(() => load('sheets', []))
 
-  useEffect(() => { localStorage.setItem('students', JSON.stringify(students)) }, [students])
-  useEffect(() => { localStorage.setItem('nametags', JSON.stringify(nametags)) }, [nametags])
-  useEffect(() => { localStorage.setItem('settings', JSON.stringify(settings)) }, [settings])
-  useEffect(() => { localStorage.setItem('sheets', JSON.stringify(sheets)) }, [sheets])
+  useEffect(() => { try { localStorage.setItem('students', JSON.stringify(students)) } catch { console.error('localStorage vol: foto\'s nemen te veel ruimte in') } }, [students])
+  useEffect(() => { try { localStorage.setItem('nametags', JSON.stringify(nametags)) } catch { /* ignore */ } }, [nametags])
+  useEffect(() => { try { localStorage.setItem('settings', JSON.stringify(settings)) } catch { /* ignore */ } }, [settings])
+  useEffect(() => { try { localStorage.setItem('sheets', JSON.stringify(sheets)) } catch { /* ignore */ } }, [sheets])
 
   const addStudent = (s: Omit<Student, 'id'>): string => {
     const id = uid()
